@@ -28,7 +28,7 @@
     "react-router-dom": "^7.10.1",
     "react-router-hash-link": "^2.4.3",
     "react-select": "^5.10.2",
-    "sweetalert2": "^11.26.4",
+    "sweetalert2": "^11.26.21",
     "swiper": "^12.0.3",
     "tailwindcss": "^4.1.17"
   },

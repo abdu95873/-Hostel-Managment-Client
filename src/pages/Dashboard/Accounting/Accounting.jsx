@@ -23,13 +23,26 @@ export default function AccountsPage() {
     fetchData();
   }, [axios]);
 
-  const handleUserClick = (user) => {
-    setSelectedUser(user);
-  };
-
+  const handleUserClick = (user) => setSelectedUser(user);
   const closeModal = () => setSelectedUser(null);
 
   const getUserPayments = (userId) => payments.filter(p => p.user_id === userId);
+
+  // calculate payment status dynamically
+  const calculateStatus = (p) => {
+    const payable = (p.amount || 0) - (p.discount || 0);
+    const paid = p.paid || 0;
+    const due = payable - paid;
+
+    if (paid <= 0) return "pending";
+    if (due > 0) return "partial";
+    return "paid";
+  };
+const getTotalAmount = (userId) => getUserPayments(userId).reduce((sum, p) => sum + (p.amount || 0), 0);
+const getTotalDiscount = (userId) => getUserPayments(userId).reduce((sum, p) => sum + (p.discount || 0), 0);
+const getTotalPayable = (userId) => getUserPayments(userId).reduce((sum, p) => sum + ((p.amount || 0) - (p.discount || 0)), 0);
+  const getTotalPaid = (userId) => getUserPayments(userId).reduce((sum, p) => sum + (p.paid || 0), 0);
+  const getTotalDue = (userId) => getUserPayments(userId).reduce((sum, p) => sum + ((p.amount || 0) - (p.discount || 0) - (p.paid || 0)), 0);
 
   return (
     <div className="p-6">
@@ -41,29 +54,35 @@ export default function AccountsPage() {
             <th className="border px-2 py-1">Name</th>
             <th className="border px-2 py-1">Email</th>
             <th className="border px-2 py-1">Phone</th>
+            <th className="border px-2 py-1">Total </th>
+            <th className="border px-2 py-1">Total Discount</th>
+            <th className="border px-2 py-1">Total Payable</th>
             <th className="border px-2 py-1">Total Paid</th>
+              <th className="border px-2 py-1">Total Due</th>
           </tr>
         </thead>
         <tbody>
-          {users.map(u => {
-            const totalPaid = getUserPayments(u._id).reduce((sum, p) => sum + p.amount, 0);
-
-            return (
-              <tr key={u._id} className="text-sm">
-                <td className="border px-2 py-1">
-                  <button 
-                    onClick={() => handleUserClick(u)}
-                    className="text-blue-500 hover:underline"
-                  >
-                    {u.name}
-                  </button>
-                </td>
-                <td className="border px-2 py-1">{u.email}</td>
-                <td className="border px-2 py-1">{u.phone}</td>
-                <td className="border px-2 py-1">{totalPaid}</td>
-              </tr>
-            );
-          })}
+          {users.map(u => (
+            <tr key={u._id} className="text-sm">
+              <td className="border px-2 py-1">
+                <button 
+                  onClick={() => handleUserClick(u)}
+                  className="text-blue-500 hover:underline"
+                >
+                  {u.name}
+                </button>
+              </td>
+              <td className="border px-2 py-1 ">{u.email}</td>
+              <td className="border px-2 py-1">{u.phone}</td>
+              <td className="border px-2 py-1 text-center">{getTotalAmount(u._id)}</td>
+              <td className="border px-2 py-1 text-center">{getTotalDiscount(u._id)}</td>
+              <td className="border px-2 py-1 text-center">{getTotalPayable(u._id)}</td>
+              <td className="border px-2 py-1 text-center">{getTotalPaid(u._id)}</td>
+             <td className={`border border-black font-bold px-2 py-1 text-center ${getTotalDue(u._id) > 0 ? "text-red-600" : "text-black"}`}>
+  {getTotalDue(u._id)}
+</td>
+            </tr>
+          ))}
         </tbody>
       </table>
 
@@ -82,22 +101,33 @@ export default function AccountsPage() {
                   <th className="border px-2 py-1">Amount</th>
                   <th className="border px-2 py-1">Discount</th>
                   <th className="border px-2 py-1">Payable</th>
+                  <th className="border px-2 py-1">Paid</th>
+                  <th className="border px-2 py-1">Due</th>
                   <th className="border px-2 py-1">Status</th>
                 </tr>
               </thead>
               <tbody>
-                {getUserPayments(selectedUser._id).map(p => (
-                  <tr key={p._id} className="text-sm">
-                    <td className="border px-2 py-1">{p.month}</td>
-                    <td className="border px-2 py-1">{p.amount}</td>
-                    <td className="border px-2 py-1">{p.discount || 0}</td>
-                    <td className="border px-2 py-1">{p.amount - (p.discount || 0)}</td>
-                    <td className="border px-2 py-1">{p.status}</td>
-                  </tr>
-                ))}
+                {getUserPayments(selectedUser._id).map(p => {
+                  const payable = (p.amount || 0) - (p.discount || 0);
+                  const paid = p.paid || 0;
+                  const due = payable - paid;
+                  const status = calculateStatus(p);
+
+                  return (
+                    <tr key={p._id} className="text-sm">
+                      <td className="border px-2 py-1">{p.month}</td>
+                      <td className="border px-2 py-1">{p.amount}</td>
+                      <td className="border px-2 py-1">{p.discount || 0}</td>
+                      <td className="border px-2 py-1">{payable}</td>
+                      <td className="border px-2 py-1">{paid}</td>
+                      <td className="border px-2 py-1">{due}</td>
+                      <td className="border px-2 py-1 capitalize">{status}</td>
+                    </tr>
+                  );
+                })}
                 {getUserPayments(selectedUser._id).length === 0 && (
                   <tr>
-                    <td colSpan="5" className="border px-2 py-1 text-center">No payments yet</td>
+                    <td colSpan="7" className="border px-2 py-1 text-center">No payments yet</td>
                   </tr>
                 )}
               </tbody>
